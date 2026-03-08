@@ -1,0 +1,330 @@
+import tkinter as tk
+import requests
+import random
+
+PASSCODE = "jWD8d2awiWUDW2d29AUDWwJ"
+
+# -----------------------------
+# Roblox API
+# -----------------------------
+
+def get_user_id(username):
+
+    url = "https://users.roblox.com/v1/usernames/users"
+
+    data = {
+        "usernames":[username],
+        "excludeBannedUsers":False
+    }
+
+    r = requests.post(url,json=data).json()
+
+    if r["data"]:
+        return r["data"][0]["id"]
+
+    return None
+
+
+def get_user_info(user_id):
+
+    url = f"https://users.roblox.com/v1/users/{user_id}"
+
+    return requests.get(url).json()
+
+
+def check_gamepass(user_id,gamepass):
+
+    url = f"https://inventory.roblox.com/v1/users/{user_id}/items/GamePass/{gamepass}"
+
+    r = requests.get(url).json()
+
+    return r.get("data") != []
+
+# -----------------------------
+# CHECK USER
+# -----------------------------
+
+def check_user():
+
+    username = username_box.get()
+    gamepass = gamepass_box.get()
+
+    log.delete("1.0",tk.END)
+
+    try:
+
+        user_id = get_user_id(username)
+
+        if not user_id:
+            log.insert(tk.END,"User not found")
+            return
+
+        info = get_user_info(user_id)
+
+        owns = check_gamepass(user_id,gamepass)
+
+        log.insert(tk.END,f"Real Username: {username}\n")
+        log.insert(tk.END,f"Display Name: {info['displayName']}\n")
+        log.insert(tk.END,f"User ID: {user_id}\n")
+        log.insert(tk.END,f"Gamepass Owned: {owns}")
+
+    except:
+
+        log.insert(tk.END,"Error checking user")
+
+# -----------------------------
+# Unlock Menu
+# -----------------------------
+
+def unlock():
+
+    if code_box.get() == PASSCODE:
+
+        status.config(text="MENU UNLOCKED")
+
+        username_box.config(state="normal")
+        gamepass_box.config(state="normal")
+        check_btn.config(state="normal")
+
+    else:
+
+        status.config(text="WRONG CODE")
+
+# -----------------------------
+# Owner Panel
+# -----------------------------
+
+def owner_panel():
+
+    panel = tk.Toplevel(root)
+    panel.geometry("400x300")
+    panel.title("Owner Panel")
+
+    canvas2 = tk.Canvas(panel,bg="black")
+    canvas2.pack(fill="both",expand=True)
+
+    tk.Label(panel,
+             text="OWNER PANEL",
+             font=("Arial",16),
+             fg="white",
+             bg="black").place(relx=.5,rely=.1,anchor="center")
+
+    def disable():
+
+        check_btn.config(state="disabled")
+
+    def enable():
+
+        check_btn.config(state="normal")
+
+    tk.Button(panel,
+              text="Disable Checker",
+              bg="#6ec6ff",
+              activebackground="#3b6ea8",
+              relief="raised",
+              command=disable).place(relx=.5,rely=.4,anchor="center")
+
+    tk.Button(panel,
+              text="Enable Checker",
+              bg="#6ec6ff",
+              activebackground="#3b6ea8",
+              relief="raised",
+              command=enable).place(relx=.5,rely=.6,anchor="center")
+
+# -----------------------------
+# Fog Background
+# -----------------------------
+
+fog = []
+
+def create_fog():
+
+    for i in range(30):
+
+        x = random.randint(0,600)
+        y = random.randint(0,500)
+
+        size = random.randint(120,260)
+
+        color = random.choice(["#552bff","#2d6cff"])
+
+        f = canvas.create_oval(x,y,x+size,y+size,
+                               fill=color,
+                               outline="")
+
+        fog.append([f,random.uniform(.2,.6)])
+
+
+def animate_fog():
+
+    for f,s in fog:
+
+        canvas.move(f,s,0)
+
+        pos = canvas.coords(f)
+
+        if pos[0] > 600:
+
+            canvas.coords(f,-200,pos[1],0,pos[3])
+
+    root.after(50,animate_fog)
+
+# -----------------------------
+# Loading System
+# -----------------------------
+
+def start_loading():
+
+    progress = 0
+
+    def load():
+
+        nonlocal progress
+
+        progress += 1
+
+        bar_canvas.coords(load_bar,0,0,progress*5,20)
+
+        percent_label.config(text=f"{progress}%")
+
+        if progress < 100:
+            root.after(25,load)
+        else:
+            finish_loading()
+
+    load()
+
+
+def finish_loading():
+
+    canvas.delete(loading_window)
+
+    canvas.itemconfigure(menu_window,state="normal")
+
+# -----------------------------
+# UI
+# -----------------------------
+
+root = tk.Tk()
+root.title("MOONS CHECKER")
+root.geometry("600x500")
+
+canvas = tk.Canvas(root,bg="black")
+canvas.pack(fill="both",expand=True)
+
+create_fog()
+animate_fog()
+
+# -----------------------------
+# MENU (hidden first)
+# -----------------------------
+
+menu = tk.Frame(canvas,bg="#111111",padx=20,pady=20)
+
+menu_window = canvas.create_window(300,250,window=menu)
+
+canvas.itemconfigure(menu_window,state="hidden")
+
+title = tk.Label(menu,
+                 text="🌙 MOONS CHECKER",
+                 fg="white",
+                 bg="#111111",
+                 font=("Arial",18))
+
+title.pack(pady=5)
+
+code_box = tk.Entry(menu,
+                    bg="black",
+                    fg="white",
+                    insertbackground="white")
+
+code_box.pack()
+
+tk.Button(menu,
+          text="ENTER CODE",
+          bg="#6ec6ff",
+          activebackground="#3b6ea8",
+          command=unlock).pack(pady=5)
+
+status = tk.Label(menu,
+                  text="MENU LOCKED",
+                  fg="purple",
+                  bg="#111111")
+
+status.pack(pady=5)
+
+username_box = tk.Entry(menu,
+                        bg="black",
+                        fg="white",
+                        insertbackground="white",
+                        state="disabled")
+
+username_box.pack(pady=5)
+username_box.insert(0,"Username")
+
+gamepass_box = tk.Entry(menu,
+                        bg="black",
+                        fg="white",
+                        insertbackground="white",
+                        state="disabled")
+
+gamepass_box.pack(pady=5)
+gamepass_box.insert(0,"Gamepass ID")
+
+check_btn = tk.Button(menu,
+                      text="CHECK USER",
+                      bg="#6ec6ff",
+                      activebackground="#3b6ea8",
+                      state="disabled",
+                      command=check_user)
+
+check_btn.pack(pady=10)
+
+log = tk.Text(menu,
+              width=45,
+              height=10,
+              bg="black",
+              fg="white")
+
+log.pack(pady=10)
+
+tk.Button(menu,
+          text="Owner Panel",
+          bg="#6ec6ff",
+          activebackground="#3b6ea8",
+          command=owner_panel).pack()
+
+# -----------------------------
+# LOADING SCREEN (FRONT)
+# -----------------------------
+
+loading_frame = tk.Frame(canvas,bg="black")
+
+loading_window = canvas.create_window(300,250,window=loading_frame)
+
+tk.Label(loading_frame,
+         text="【Ｍｏｏｎ】",
+         font=("Arial",26),
+         fg="white",
+         bg="black").pack(pady=20)
+
+bar_canvas = tk.Canvas(loading_frame,
+                       width=500,
+                       height=20,
+                       bg="#111111",
+                       highlightthickness=0)
+
+bar_canvas.pack()
+
+load_bar = bar_canvas.create_rectangle(0,0,0,20,fill="#6ec6ff")
+
+percent_label = tk.Label(loading_frame,
+                         text="0%",
+                         fg="white",
+                         bg="black")
+
+percent_label.pack(pady=10)
+
+start_loading()
+
+root.mainloop()
